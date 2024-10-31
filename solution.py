@@ -14,6 +14,9 @@ class Stonewall:
     def __init__(self, heights: list[int]):
         self.heights = heights
         self.list_view = heights
+        self.block_number = 0
+        self.row = self.list_view.shape[0] - 1
+        self.column = 0
 
     @property
     def list_view(self):
@@ -39,15 +42,15 @@ class Stonewall:
     def __repr__(self) -> str:
         return repr(self.heights)
 
-    def looking_horizontally(self, row: int, column: int):
-        start_row = self.list_view[row, column:]
+    def find_largest_h_block(self) -> tuple[int]:
+        start_row = self.list_view[self.row, self.column :]
 
         max_block_length = len(start_row)
         if len(block_lengths := np.where(start_row != "x")[0]) > 0:
             max_block_length = max(block_lengths)
 
         vertical_slice = self.list_view[
-            : row + 1, column : column + max_block_length
+            : self.row + 1, self.column : self.column + max_block_length
         ]
 
         max_block_height = vertical_slice.shape[0]
@@ -61,17 +64,21 @@ class Stonewall:
         ):
             max_block_height = vertical_slice.shape[0] - max(block_heights) - 1
 
-        return max_block_length, max_block_height
+        return (
+            max_block_height * max_block_length,
+            max_block_length,
+            max_block_height,
+        )
 
-    def looking_vertically(self, row: int, column: int):
-        start_column = self.list_view[: row + 1, column]
+    def find_largest_v_block(self) -> tuple[int]:
+        start_column = self.list_view[: self.row + 1, self.column]
 
         max_block_height = len(start_column)
         if len(block_heights := np.where(start_column != "x")[0]) > 0:
             max_block_height = len(start_column) - max(block_heights) - 1
 
         horizontal_slice = self.list_view[
-            row - (max_block_height - 1) : row + 1, column:
+            self.row - (max_block_height - 1) : self.row + 1, self.column :
         ]
 
         max_block_length = horizontal_slice.shape[1]
@@ -86,15 +93,17 @@ class Stonewall:
         ):
             max_block_length = min(block_lengths)
 
-        return max_block_length, max_block_height
+        return (
+            max_block_height * max_block_length,
+            max_block_length,
+            max_block_height,
+        )
 
-    def get_outer_coords(
-        row: int, column: int, length: int, height: int
-    ) -> tuple[tuple[int]]:
-        bottom_left_coord = (row, column)
-        bottom_right_coord = (row, column + length - 1)
-        top_left_coord = (row - (height - 1), column)
-        top_right_coord = (row - (height - 1), column + length - 1)
+    def get_outer_coords(self, length: int, height: int) -> tuple[tuple[int]]:
+        bottom_left_coord = (self.row, self.column)
+        bottom_right_coord = (self.row, self.column + length - 1)
+        top_left_coord = (self.row - (height - 1), self.column)
+        top_right_coord = (self.row - (height - 1), self.column + length - 1)
         return (
             top_left_coord,
             top_right_coord,
@@ -102,20 +111,29 @@ class Stonewall:
             bottom_right_coord,
         )
 
+    def find_largest_block(self) -> tuple[int]:
+        h_block_area, _, _ = self.find_largest_h_block()
+        v_block_area, _, _ = self.find_largest_v_block()
+        if h_block_area > v_block_area:
+            return self.find_largest_h_block()
+        return self.find_largest_v_block()
 
-# next steps - write function that chooses the bigger out of horizontal and vertical
-# to replace the used blocks with 'b' - or incremental letters if possible
-# select the next bottom leftest
+    def draw_block(self, length: int, height: int):
+        self.list_view[
+            self.row - (height - 1) : self.row + 1,
+            self.column : self.column + length,
+        ] = str(self.block_number)
+        self.block_number += 1
+
+    def find_and_draw_biggest_block(self):
+        _, length, height = self.find_largest_block()
+        self.draw_block(length, height)
 
 
 if __name__ == "__main__":
     first_test_case = import_test_cases("input.json")[0]
     first_input = first_test_case["input"]
     mystonewall = Stonewall(first_input)
-    # pprint(mystonewall.list_view)
-    looking_vertically(
-        mystonewall.list_view.shape[0] - 1, 0, mystonewall.list_view
-    )
-    looking_horizontally(
-        mystonewall.list_view.shape[0] - 1, 0, mystonewall.list_view
-    )
+    pprint(mystonewall.list_view)
+    mystonewall.find_and_draw_biggest_block()
+    pprint(mystonewall.list_view)
