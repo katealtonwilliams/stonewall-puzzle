@@ -1,7 +1,6 @@
 import json
 from pprint import pprint
 import numpy as np
-import copy
 
 
 def import_test_cases(file_name: str) -> list[dict]:
@@ -14,7 +13,7 @@ class Stonewall:
     def __init__(self, heights: list[int]):
         self.heights = heights
         self.list_view = heights
-        self.block_number = 0
+        self.block_number = 1
         self.row = self.list_view.shape[0] - 1
         self.column = 0
 
@@ -129,11 +128,42 @@ class Stonewall:
         _, length, height = self.find_largest_block()
         self.draw_block(length, height)
 
+    def update_row_and_column(self):
+        if len(np.where(self.list_view == "x")[0]) > 0:
+            self.row = (
+                self.list_view.shape[0]
+                - (np.where(self.list_view[::-1] == "x")[0][0])
+                - 1
+            )
+            self.column = np.where(self.list_view[::-1] == "x")[1][0]
+        else:
+            self.row = -1
+            self.column = -1
+
+    def find_final_form(self):
+        while self.row != -1 and self.column != -1:
+            self.find_and_draw_biggest_block()
+            self.update_row_and_column()
+
+    def max_blocks(self):
+        unique_items = list(np.unique(self.list_view))
+        if " " in unique_items:
+            unique_items.remove(" ")
+        return len(unique_items)
+
+
+def try_all_test_cases(file_name: str):
+    test_cases = import_test_cases(file_name)
+    for case in test_cases:
+        input_heights = case["input"]
+        answer = case["answer"]
+        stonewall = Stonewall(input_heights)
+        stonewall.find_final_form()
+        if stonewall.max_blocks() != answer:
+            print(f"Incorrect, expected {answer} got {stonewall.max_blocks()}")
+        else:
+            print("Correct!")
+
 
 if __name__ == "__main__":
-    first_test_case = import_test_cases("input.json")[0]
-    first_input = first_test_case["input"]
-    mystonewall = Stonewall(first_input)
-    pprint(mystonewall.list_view)
-    mystonewall.find_and_draw_biggest_block()
-    pprint(mystonewall.list_view)
+    try_all_test_cases("input.json")
